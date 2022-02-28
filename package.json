@@ -1,0 +1,34 @@
+{
+    "name": "item-sets-graph",
+    "version": "1.0",
+    "description": "",
+    "author": "sinanatra",
+    "license": "MIT",
+    "private": false,
+    "scripts": {
+        "build": "node build.js",
+        "watch": "node build.js --watch"
+    },
+    "dependencies": {
+        "chokidar": "^3.5.2",
+        "d3": "^7.3.0",
+        "esbuild": "^0.12.15",
+        "esbuild-plugin-sass": "0.5.0",
+        "jquery": "^3.5.1"
+    },
+    "devDependencies": {},
+    "browserslist": [
+        "edge >= 16",
+        "firefox >= 52",
+        "chrome >= 57",
+        "safari >= 10.1",
+        "opera >= 44",
+        "ios >= 10.3",
+        "android >= 67",
+        "and_chr >= 74",
+        "and_uc >= 11.8",
+        "op_mob >= 46",
+        "and_ff >= 67",
+        "samsung >= 6.2"
+    ]
+}

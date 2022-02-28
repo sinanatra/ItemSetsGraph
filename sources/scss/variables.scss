@@ -1,0 +1,17 @@
+// TYPOGRAPHY
+$font-family-mono:      'Courier', sans-serif;
+$font-size-base:              1rem !default; // Assumes the browser default, typically `16px`
+$line-height-base:            1.5em !default;
+
+//  COLORS
+
+$color-1: black;
+
+// LAYOUT
+
+$gutter:     16px;
+$phablet:    568px;
+$tablet:     768px;
+$desktop:    960px;
+$widescreen: 1366px;
+$fullhd:     1600px;

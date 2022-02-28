@@ -1,0 +1,41 @@
+<?php
+	/**
+	 * @var \Laminas\View\Renderer\PhpRenderer $this
+	 * @var \Omeka\Api\Representation\SiteRepresentation $site
+	 */
+
+	$parseJson = explode("\n", $json);
+	$data = [];
+
+	for ($i = 0; $i <= count($parseJson); $i++ ) {
+		$splitJson = explode(",", $parseJson[$i]);
+		$id = intval( $splitJson[0]) ;
+		$color = $splitJson[1] ;
+		
+		try {
+			$itemSet = $this->api()->read('item_sets', $id )->getContent();
+			$itemSetTitle = $itemSet->displayTitle();
+			
+			$response = $this->api()->search('items', ['item_set_id' => $id]);
+			// $this->paginator($response->getTotalResults());
+			// $items = $response->getContent();
+			
+			foreach ($response->getContent() as $key => $item) {
+				$data[] = [
+					'color' => $color,
+					'source' => $itemSetTitle,
+					'target' => $item->title(),
+					'itemData' => $item,
+					'itemSetData' => $itemSet
+				];
+			}
+		}
+		catch (Exception $e) {
+			// echo 'Caught exception: ',  $e->getMessage(), "\n";
+		}
+	}
+?>
+
+<div class="item-sets-graph-block">
+	<div id="item-sets-graph" class="item-sets-graph" data-json="<?=$this->escapeHtml(json_encode($data)) ?>"></div>
+</div>
