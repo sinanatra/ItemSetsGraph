@@ -12,7 +12,7 @@ This module allows the user to visualise in a graph the items contained in item 
 * When creating a site, the Item Sets Graph block will available. 
 * It will display a text input where is possible to insert comma splitted parameters, e.g: `Item Set Id, Hex color \n`
 
-## Costumise
+## Customize
 
 The module works with esbuild and it allows to work with SCSS and ES6. Featuring [SCSS Starterkit](https://github.com/sinanatra/scss-starterkit).
 
