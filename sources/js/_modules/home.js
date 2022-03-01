@@ -4,6 +4,9 @@ let dragging;
 const Home = {
   init: () => {
     const json = JSON.parse($('#item-sets-graph').attr('data-json'));
+    const imgCheck = Boolean($('#item-sets-graph').attr('data-img'));
+    console.log("Load images: ", imgCheck)
+
     const nodesCluster = Array.from(new Set(json.flatMap(l => [l.source, l.target])), id => ({ id }))
 
     nodesCluster.forEach((l) => {
@@ -25,14 +28,18 @@ const Home = {
     const nodes = data.nodes.map(d => Object.create(d));
     const types = Array.from(new Set(links.map(d => d.color)));
 
-    const height = window.innerHeight;
+    const height = window.innerHeight / 2;
     const width = window.innerWidth;
 
     const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(d => d.id))
-      .force("charge", d3.forceManyBody().strength(-400))
-      .force("x", d3.forceX())
-      .force("y", d3.forceY());
+      // .force("charge", d3.forceManyBody().strength(-500))
+      // .force("x", d3.forceX())
+      // .force("y", d3.forceY())
+      .force("forceX", d3.forceX().x(0))
+      .force("forceY", d3.forceY().y(0))
+      .force("collision", d3.forceCollide().radius(25).iterations(20)
+      );
 
     const svg = d3.select('.item-sets-graph').append("svg")
       .attr("viewBox", [-width / 2, -height / 2, width, height])
@@ -44,7 +51,8 @@ const Home = {
       .selectAll("path")
       .data(links)
       .join("path")
-      // .attr("stroke", d => d.color)
+      .attr("data-from", d => d.itemSetData["o:title"])
+      .attr("data-to", d => d.itemData["o:title"])
       .attr("stroke", "rgb(212, 212, 212)")
 
     const node = svg.append("g")
@@ -56,7 +64,29 @@ const Home = {
       .join("g")
       .call(drag(simulation));
 
-    node.append("foreignObject")
+    if (imgCheck == true) {
+      node.append("foreignObject")
+        .filter((d) => d.source.type != "item-set" && d.source.data["thumbnail_display_urls"]["square"])
+        .attr("data-from", d => d.id)
+        .attr("x", "-1em")
+        .attr("y", "-.5em")
+        .attr("height", 20)
+        .attr("width", 20)
+        .append("xhtml:div")
+        .style("width", "20px")
+        .style("height", "20px")
+        .append("xhtml:img")
+        .attr("src", d => {
+          if (d.source.data["thumbnail_display_urls"].square) {
+            return d.source.data["thumbnail_display_urls"].square;
+          }
+        })
+        .style("width", "100%")
+        .style("height", "100%")
+        .style("object-fit", "contain");
+    }
+    const textObject = node.append("foreignObject")
+      .attr("data-from", d => d.id)
       .attr("x", "-1em")
       .attr("y", "-.5em")
       .attr("height", "1.2rem")
@@ -66,6 +96,8 @@ const Home = {
           return "none";
         }
       })
+
+    textObject
       .append("xhtml:div")
       .style("border-radius", ".25rem")
       .style("padding", ".25rem")
@@ -75,16 +107,23 @@ const Home = {
       .html(d => {
         return d.id;
       })
-
-    node.append("circle")
-      .attr("r", 5)
       .on("mouseover", circleMouseEnterEvent)
       .on("mouseout", circleMouseLeaveEvent)
-      .attr("display", d => {
-        if (d.source.type == "item-set") {
-          return "none";
-        }
-      })
+
+    if (imgCheck == true) {
+      node.append("circle")
+        .filter((d) => d.source.type != "item-set" && !d.source.data["thumbnail_display_urls"]["square"])
+        .attr("r", 5)
+        .on("mouseover", circleMouseEnterEvent)
+        .on("mouseout", circleMouseLeaveEvent)
+    }
+    else {
+      node.append("circle")
+        .filter((d) => d.source.type != "item-set")
+        .attr("r", 5)
+        .on("mouseover", circleMouseEnterEvent)
+        .on("mouseout", circleMouseLeaveEvent)
+    }
 
     simulation.on("tick", () => {
       link.attr("d", linkArc);
@@ -146,21 +185,26 @@ function mergeArrayObjects(arr1, arr2) {
 
 function circleMouseEnterEvent(e, d) {
   if (!dragging) {
-
     d3.select(this.parentNode)
+      .raise()
       .selectAll("foreignObject")
-      .style("display", "block");
+      .style("display", "block")
 
     d3.select(this.parentNode)
       .selectAll("circle")
       .style("opacity", 0);
-    // d3.select(`*[data-id="${d.source.data["o:title"]}"]`)
-    //   .attr("stroke", d.source.color);
+
+    const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
+    const paths_to = d3.selectAll(`path[data-to="${d.source.data["o:title"]}"]`)
+    paths_from.attr("stroke", "black");
+    paths_to.attr("stroke", "black");
+
   }
 }
 
 function circleMouseLeaveEvent(e, d) {
   if (!dragging) {
+
     d3.select(this.parentNode)
       .selectAll("foreignObject")
       .style("display", "none");
@@ -168,6 +212,10 @@ function circleMouseLeaveEvent(e, d) {
     d3.select(this.parentNode)
       .selectAll("circle")
       .style("opacity", 1);
+
+    const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
+    const paths_to = d3.selectAll(`path[data-to="${d.source.data["o:title"]}"]`)
+    paths_from.attr("stroke", "rgb(212, 212, 212)");
+    paths_to.attr("stroke", "rgb(212, 212, 212)");
   }
 }
-
