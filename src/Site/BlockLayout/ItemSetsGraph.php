@@ -3,6 +3,7 @@ namespace ItemSetsGraph\Site\BlockLayout;
 
 use Laminas\Form\Element\Select;
 use Laminas\Form\Element\Text;
+use Laminas\Form\Element\Checkbox;
 use Omeka\Form\Element\HtmlTextarea;
 use Omeka\Api\Representation\SiteRepresentation;
 use Omeka\Api\Representation\SitePageRepresentation;
@@ -33,9 +34,16 @@ class ItemSetsGraph extends AbstractBlockLayout
         SitePageRepresentation $page = null, SitePageBlockRepresentation $block = null) {
         $html = '';
         $json = new HtmlTextarea("o:block[__blockIndex__][o:data][item_sets_graph_json]");
-        
+        $json->setAttributes(['rows' => 5]);
+
+        $imgCheck = new Checkbox("o:block[__blockIndex__][o:data][item_sets_graph_imgCheck]");
+
         if ($block && $block->dataValue('item_sets_graph_json')) {
             $json->setAttribute('value', $block->dataValue('item_sets_graph_json'));
+        }
+
+        if ($block && $block->dataValue('item_sets_graph_imgCheck')) {
+            $imgCheck->setAttribute('value', $block->dataValue('item_sets_graph_imgCheck'));
         }
 
         $html .= '<div class="field"><div class="field-meta">';
@@ -43,9 +51,11 @@ class ItemSetsGraph extends AbstractBlockLayout
         $html .= '<a href="#" class="collapse" aria-label="Collapse" title="Collapse"></a>';
         $html .= '<div class="collapsible"><div class="field-description">'. $view->translate('Follow the structure: <br>Item Set Id, Hex color \n') . '</div></div>';
         $html .= '</div>';
-        $html .= '<div class="inputs">' . $view->formRow($json) . '</div>';
+        $html .= '<div class="inputs">' . $view->formRow($json);
+        $html .= '<div class="inputs">' .$view->formRow($imgCheck) . '<label for="o:block[__blockIndex__][o:data][item_sets_graph_imgCheck]"> Display Images as nodes</label></div>';
         $html .= '</div>';
-        
+        $html .= '</div>';
+
         return $html;
     }
 
@@ -57,6 +67,7 @@ class ItemSetsGraph extends AbstractBlockLayout
         return $view->partial('common/block-layout/item-sets-graph-block', [
             'block' => $block,
             'json' => $block->dataValue('item_sets_graph_json'),
+            'imgCheck' => $block->dataValue('item_sets_graph_imgCheck'),
             'itemSets' => $response
         ]);
     }

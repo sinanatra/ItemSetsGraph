@@ -14,11 +14,8 @@
 		
 		try {
 			$itemSet = $this->api()->read('item_sets', $id )->getContent();
-			$itemSetTitle = $itemSet->displayTitle();
-			
+			$itemSetTitle = $itemSet->displayTitle();			
 			$response = $this->api()->search('items', ['item_set_id' => $id]);
-			// $this->paginator($response->getTotalResults());
-			// $items = $response->getContent();
 			
 			foreach ($response->getContent() as $key => $item) {
 				$data[] = [
@@ -37,5 +34,5 @@
 ?>
 
 <div class="item-sets-graph-block">
-	<div id="item-sets-graph" class="item-sets-graph" data-json="<?=$this->escapeHtml(json_encode($data)) ?>"></div>
+	<div id="item-sets-graph" data-img="<?= boolval($imgCheck)  ? 'true' : 'false' ?>" class="item-sets-graph" data-json="<?=$this->escapeHtml(json_encode($data)) ?>"></div>
 </div>
