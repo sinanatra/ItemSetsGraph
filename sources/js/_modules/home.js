@@ -4,7 +4,7 @@ let dragging;
 const Home = {
   init: () => {
     const json = JSON.parse($('#item-sets-graph').attr('data-json'));
-    const imgCheck = Boolean($('#item-sets-graph').attr('data-img'));
+    const imgCheck = $('#item-sets-graph').attr('data-img');
     console.log("Load images: ", imgCheck)
 
     const nodesCluster = Array.from(new Set(json.flatMap(l => [l.source, l.target])), id => ({ id }))
@@ -64,7 +64,7 @@ const Home = {
       .join("g")
       .call(drag(simulation));
 
-    if (imgCheck == true) {
+    if (imgCheck == "true") {
       node.append("foreignObject")
         .filter((d) => d.source.type != "item-set" && d.source.data["thumbnail_display_urls"]["square"])
         .attr("data-from", d => d.id)
@@ -110,7 +110,7 @@ const Home = {
       .on("mouseover", circleMouseEnterEvent)
       .on("mouseout", circleMouseLeaveEvent)
 
-    if (imgCheck == true) {
+    if (imgCheck == "true") {
       node.append("circle")
         .filter((d) => d.source.type != "item-set" && !d.source.data["thumbnail_display_urls"]["square"])
         .attr("r", 5)
