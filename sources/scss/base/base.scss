@@ -1,8 +1,7 @@
 .item-sets-graph-block {
-  min-height: 50vh;
+  min-height: 80vh;
   width: 100vw;
   background-color: white;
-
   user-select: none;
 }
 
@@ -14,4 +13,8 @@ foreignObject {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+circle, p, img {
+  cursor: pointer;
 }

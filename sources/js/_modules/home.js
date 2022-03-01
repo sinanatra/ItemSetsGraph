@@ -28,17 +28,34 @@ const Home = {
     const nodes = data.nodes.map(d => Object.create(d));
     const types = Array.from(new Set(links.map(d => d.color)));
 
-    const height = window.innerHeight / 2;
-    const width = window.innerWidth;
+    const width = document.getElementsByClassName("item-sets-graph-block")[0].clientWidth;
+    const height = document.getElementsByClassName("item-sets-graph-block")[0].clientHeight;
+
+    let linearScale = d3.scaleLinear()
+      .domain([0, 50])
+      .range([0, 300]);
 
     const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(d => d.id))
-      // .force("charge", d3.forceManyBody().strength(-500))
+      .force("charge", d3.forceManyBody().strength(-100))
       // .force("x", d3.forceX())
       // .force("y", d3.forceY())
       .force("forceX", d3.forceX().x(0))
       .force("forceY", d3.forceY().y(0))
-      .force("collision", d3.forceCollide().radius(25).iterations(20)
+      .force(
+        "collision",
+        d3
+          .forceCollide()
+          .radius((d) => {
+            if (d.source.type == "item-set") {
+              // use a proper scale
+              return linearScale(d.source.data["o:title"].length)
+            }
+            else {
+              return 25
+            }
+          })
+          .iterations(20)
       );
 
     const svg = d3.select('.item-sets-graph').append("svg")
@@ -53,7 +70,7 @@ const Home = {
       .join("path")
       .attr("data-from", d => d.itemSetData["o:title"])
       .attr("data-to", d => d.itemData["o:title"])
-      .attr("stroke", "rgb(212, 212, 212)")
+      .attr("stroke", "rgb(245, 245, 245)")
 
     const node = svg.append("g")
       .attr("fill", "currentColor")
@@ -65,13 +82,16 @@ const Home = {
       .call(drag(simulation));
 
     if (imgCheck == "true") {
-      node.append("foreignObject")
+      node
         .filter((d) => d.source.type != "item-set" && d.source.data["thumbnail_display_urls"]["square"])
+        .append("foreignObject")
         .attr("data-from", d => d.id)
         .attr("x", "-1em")
         .attr("y", "-.5em")
         .attr("height", 20)
         .attr("width", 20)
+        .on("mouseover", mouseEnterEvent)
+        .on("mouseout", mouseLeaveEvent)
         .append("xhtml:div")
         .style("width", "20px")
         .style("height", "20px")
@@ -86,8 +106,16 @@ const Home = {
         .style("object-fit", "contain");
     }
     const textObject = node.append("foreignObject")
+      .attr("class", (d) => `labels-${d.source.type}`)
       .attr("data-from", d => d.id)
-      .attr("x", "-1em")
+      .attr("x", d => {
+        if (d.source.type == "item-set") {
+          return "-" + linearScale(d.source.data["o:title"].length) / 2
+        }
+        if (d.source.type == "item") {
+          return "-1em";
+        }
+      })
       .attr("y", "-.5em")
       .attr("height", "1.2rem")
       .attr("width", 200)
@@ -96,6 +124,8 @@ const Home = {
           return "none";
         }
       })
+      .on("mouseover", mouseEnterEvent)
+      .on("mouseout", mouseLeaveEvent)
 
     textObject
       .append("xhtml:div")
@@ -104,25 +134,23 @@ const Home = {
       .style("background", (d) => d.source.color)
       .style("width", "fit-content")
       .append("xhtml:p")
-      .html(d => {
-        return d.id;
-      })
-      .on("mouseover", circleMouseEnterEvent)
-      .on("mouseout", circleMouseLeaveEvent)
+      .html(d => d.id)
+      .on("mouseover", mouseEnterEvent)
+      .on("mouseout", mouseLeaveEvent)
 
     if (imgCheck == "true") {
       node.append("circle")
         .filter((d) => d.source.type != "item-set" && !d.source.data["thumbnail_display_urls"]["square"])
         .attr("r", 5)
-        .on("mouseover", circleMouseEnterEvent)
-        .on("mouseout", circleMouseLeaveEvent)
+        .on("mouseover", mouseEnterEvent)
+        .on("mouseout", mouseLeaveEvent)
     }
     else {
       node.append("circle")
         .filter((d) => d.source.type != "item-set")
         .attr("r", 5)
-        .on("mouseover", circleMouseEnterEvent)
-        .on("mouseout", circleMouseLeaveEvent)
+        .on("mouseover", mouseEnterEvent)
+        .on("mouseout", mouseLeaveEvent)
     }
 
     simulation.on("tick", () => {
@@ -133,11 +161,10 @@ const Home = {
   }
 };
 
-
 export default Home;
 
-
 const drag = simulation => {
+
   function dragstarted(event, d) {
     dragging = true;
     if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -182,13 +209,20 @@ function mergeArrayObjects(arr1, arr2) {
   return merge;
 }
 
-
-function circleMouseEnterEvent(e, d) {
+function mouseEnterEvent(e, d) {
   if (!dragging) {
-    d3.select(this.parentNode)
-      .raise()
-      .selectAll("foreignObject")
-      .style("display", "block")
+    if (this.parentNode.tagName == "g") {
+      d3.select(this.parentNode)
+        .raise()
+        .selectAll(".labels-item")
+        .style("display", "block")
+    }
+    else if (this.parentNode.parentNode.tagName == "g") {
+      d3.select(this.parentNode.parentNode)
+        .raise()
+        .selectAll(".labels-item")
+        .style("display", "block")
+    }
 
     d3.select(this.parentNode)
       .selectAll("circle")
@@ -196,26 +230,39 @@ function circleMouseEnterEvent(e, d) {
 
     const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
     const paths_to = d3.selectAll(`path[data-to="${d.source.data["o:title"]}"]`)
-    paths_from.attr("stroke", "black");
-    paths_to.attr("stroke", "black");
+    paths_from.attr("stroke", "rgb(212, 212, 212)");
+    paths_to.attr("stroke", "rgb(212, 212, 212)");
 
   }
 }
 
-function circleMouseLeaveEvent(e, d) {
+function mouseLeaveEvent(e, d) {
   if (!dragging) {
-
-    d3.select(this.parentNode)
-      .selectAll("foreignObject")
-      .style("display", "none");
-
+    if (this.parentNode.tagName == "g") {
+      d3.select(this.parentNode)
+        .raise()
+        .selectAll(".labels-item")
+        .style("display", "none");
+    }
+    else if (this.parentNode.parentNode.tagName == "g") {
+      d3.select(this.parentNode.parentNode)
+        .raise()
+        .selectAll(".labels-item")
+        .style("display", "none");
+    }
     d3.select(this.parentNode)
       .selectAll("circle")
       .style("opacity", 1);
 
     const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
     const paths_to = d3.selectAll(`path[data-to="${d.source.data["o:title"]}"]`)
-    paths_from.attr("stroke", "rgb(212, 212, 212)");
-    paths_to.attr("stroke", "rgb(212, 212, 212)");
+    paths_from.attr("stroke", "rgb(245, 245, 245)");
+    paths_to.attr("stroke", "rgb(245, 245, 245)");
   }
+}
+
+function validate(x, a, b) {
+  if (x < a) x = a;
+  if (x > b) x = b;
+  return x;
 }
