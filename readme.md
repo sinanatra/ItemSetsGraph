@@ -12,6 +12,17 @@ This module allows the user to visualise in a graph the items contained in item 
 * When creating a site, the Item Sets Graph block will available. 
 * It will display a text input where is possible to insert comma splitted parameters, e.g: `Item Set Id, Hex color \n`
 
+## Costumise
+
+The module works with esbuild and it allows to work with SCSS and ES6. Featuring [SCSS Starterkit](https://github.com/sinanatra/scss-starterkit).
+
+1. [Node.js](https://nodejs.org/en/) and [yarn](https://classic.yarnpkg.com/en/docs/install/#mac-stable) are required.
+
+2. Install dependencies with `yarn`.
+
+3. Type `yarn watch` and to start coding. 
+
+
 ## Contribute
 
 Feel free to submit any issue or request.
