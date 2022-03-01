@@ -52,7 +52,7 @@ class ItemSetsGraph extends AbstractBlockLayout
         $html .= '<div class="collapsible"><div class="field-description">'. $view->translate('Follow the structure: <br>Item Set Id, Hex color \n') . '</div></div>';
         $html .= '</div>';
         $html .= '<div class="inputs">' . $view->formRow($json);
-        $html .= '<div class="inputs">' .$view->formRow($imgCheck) . '<label for="o:block[__blockIndex__][o:data][item_sets_graph_imgCheck]"> Display Images as nodes</label></div>';
+        $html .= '<div class="inputs">' .$view->formRow($imgCheck) . '<label> Display Images as nodes</label></div>';
         $html .= '</div>';
         $html .= '</div>';
 
