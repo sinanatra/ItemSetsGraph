@@ -22,8 +22,8 @@
 					'color' => $color,
 					'source' => $itemSetTitle,
 					'target' => $item->title(),
-					'itemData' => $item,
-					'itemSetData' => $itemSet
+					'to' => $item,
+					'from' => $itemSet
 				];
 			}
 		}
@@ -33,6 +33,6 @@
 	}
 ?>
 
-<div class="item-sets-graph-block">
-	<div id="item-sets-graph" data-img="<?= boolval($imgCheck)  ? 'true' : 'false' ?>" class="item-sets-graph" data-json="<?=$this->escapeHtml(json_encode($data)) ?>"></div>
+<div class="item-sets-graph-block" data-json="<?=$this->escapeHtml(json_encode($data)) ?>">
+	<div id="item-sets-graph" data-img="<?= boolval($imgCheck)  ? 'true' : 'false' ?>" class="item-sets-graph"></div>
 </div>

@@ -1,47 +1,59 @@
 const d3 = require('d3');
 let dragging;
+const radius = 20;
+let svg, data, simulation, imgCheck;
 
 const Home = {
   init: () => {
-    const json = JSON.parse($('#item-sets-graph').attr('data-json'));
-    const imgCheck = $('#item-sets-graph').attr('data-img');
-    console.log("Load images: ", imgCheck)
-
+    const json = JSON.parse($('.item-sets-graph-block').attr('data-json'));
     const nodesCluster = Array.from(new Set(json.flatMap(l => [l.source, l.target])), id => ({ id }))
+
+    imgCheck = $('#item-sets-graph').attr('data-img');
+    console.log("Load images: ", imgCheck)
 
     nodesCluster.forEach((l) => {
       json.forEach((j) => {
         if (l.id == j.target) {
-          l.source = { type: "item", data: j.itemData, color: j.color };
+          l.source = { type: "item", data: j.to, color: j.color };
         }
         if (l.id == j.source) {
-          l.source = { type: "item-set", data: j.itemSetData, color: j.color };
+          l.source = { type: "item-set", data: j.from, color: j.color };
         }
       })
     })
-
     data = ({ nodes: nodesCluster, links: json });
-    console.log("Data Loaded:", data)
 
 
-    const links = data.links.map(d => Object.create(d));
-    const nodes = data.nodes.map(d => Object.create(d));
-    const types = Array.from(new Set(links.map(d => d.color)));
+    Home.graph(data);
+  },
+  graph: (data) => {
+    d3.select('.item-sets-graph > svg').remove()
 
     const width = document.getElementsByClassName("item-sets-graph-block")[0].clientWidth;
     const height = document.getElementsByClassName("item-sets-graph-block")[0].clientHeight;
+
+    svg = d3.select('.item-sets-graph').append("svg")
+      .attr("viewBox", [-width / 2, -height / 2, width, height])
+      .style("font", "12px sans-serif");
+
+    console.log("Data Loaded:", data)
+
+    const links = data.links.map(d => Object.create(d));
+    const nodes = data.nodes.map(d => Object.create(d));
 
     let linearScale = d3.scaleLinear()
       .domain([0, 50])
       .range([0, 300]);
 
-    const simulation = d3.forceSimulation(nodes)
+    simulation = d3.forceSimulation(nodes)
+      // .force("link", d3.forceLink(links).id(d => d.id))
+      // .force("charge", d3.forceManyBody().strength(-100))
+      // .force("forceX", d3.forceX().x(0))
+      // .force("forceY", d3.forceY().y(0))
       .force("link", d3.forceLink(links).id(d => d.id))
       .force("charge", d3.forceManyBody().strength(-100))
-      // .force("x", d3.forceX())
-      // .force("y", d3.forceY())
-      .force("forceX", d3.forceX().x(0))
-      .force("forceY", d3.forceY().y(0))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
       .force(
         "collision",
         d3
@@ -52,27 +64,29 @@ const Home = {
               return linearScale(d.source.data["o:title"].length)
             }
             else {
-              return 25
+              return radius + 5
             }
           })
           .iterations(20)
       );
 
-    const svg = d3.select('.item-sets-graph').append("svg")
-      .attr("viewBox", [-width / 2, -height / 2, width, height])
-      .style("font", "12px sans-serif");
+    const g_links = svg.append("g")
+      .attr("class", "links");
 
-    const link = svg.append("g")
+    const g_nodes = svg.append("g")
+      .attr("class", "nodes");
+
+    const link = g_links
       .attr("fill", "none")
       .attr("stroke-width", 1.5)
       .selectAll("path")
       .data(links)
       .join("path")
-      .attr("data-from", d => d.itemSetData["o:title"])
-      .attr("data-to", d => d.itemData["o:title"])
+      .attr("data-from", d => d.from["o:title"])
+      .attr("data-to", d => d.to["o:title"])
       .attr("stroke", "rgb(245, 245, 245)")
 
-    const node = svg.append("g")
+    const node = g_nodes
       .attr("fill", "currentColor")
       .attr("stroke-linecap", "round")
       .attr("stroke-linejoin", "round")
@@ -88,13 +102,13 @@ const Home = {
         .attr("data-from", d => d.id)
         .attr("x", "-1em")
         .attr("y", "-.5em")
-        .attr("height", 20)
-        .attr("width", 20)
+        .attr("height", radius)
+        .attr("width", radius)
         .on("mouseover", mouseEnterEvent)
         .on("mouseout", mouseLeaveEvent)
         .append("xhtml:div")
-        .style("width", "20px")
-        .style("height", "20px")
+        .style("width", `${radius}px`)
+        .style("height", `${radius}px`)
         .append("xhtml:img")
         .attr("src", d => {
           if (d.source.data["thumbnail_display_urls"].square) {
@@ -105,8 +119,11 @@ const Home = {
         .style("height", "100%")
         .style("object-fit", "contain");
     }
+
     const textObject = node.append("foreignObject")
       .attr("class", (d) => `labels-${d.source.type}`)
+      .attr("height", "30px")
+      .attr("width", 200)
       .attr("data-from", d => d.id)
       .attr("x", d => {
         if (d.source.type == "item-set") {
@@ -117,8 +134,6 @@ const Home = {
         }
       })
       .attr("y", "-.5em")
-      .attr("height", "1.2rem")
-      .attr("width", 200)
       .style("display", d => {
         if (d.source.type == "item") {
           return "none";
@@ -131,33 +146,87 @@ const Home = {
       .append("xhtml:div")
       .style("border-radius", ".25rem")
       .style("padding", ".25rem")
-      .style("background", (d) => d.source.color)
+      .style("background", (d) => d.source.color ? d.source.color : "gainsboro")
       .style("width", "fit-content")
-      .append("xhtml:p")
+      .append("xhtml:div")
       .html(d => d.id)
-      .on("mouseover", mouseEnterEvent)
-      .on("mouseout", mouseLeaveEvent)
+      .on("click", (e, d) => Home.queryItems(e, d.source, data.links))
+
 
     if (imgCheck == "true") {
       node.append("circle")
         .filter((d) => d.source.type != "item-set" && !d.source.data["thumbnail_display_urls"]["square"])
-        .attr("r", 5)
+        .attr("r", radius / 4)
         .on("mouseover", mouseEnterEvent)
         .on("mouseout", mouseLeaveEvent)
     }
+
     else {
       node.append("circle")
         .filter((d) => d.source.type != "item-set")
-        .attr("r", 5)
+        .attr("r", radius / 4)
         .on("mouseover", mouseEnterEvent)
         .on("mouseout", mouseLeaveEvent)
     }
 
-    simulation.on("tick", () => {
-      link.attr("d", linkArc);
-      node.attr("transform", d => `translate(${d.x},${d.y})`);
+
+    simulation
+      .on("tick", () => {
+        Home.ticked(link, node);
+      });
+
+  },
+  ticked: (link, node) => {
+    link.attr("d", linkArc);
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
+  },
+  drawData: (graph) => {
+    data.nodes = mergeArrays([graph.nodes, data.nodes], 'id');
+    data.links = data.links.concat(graph.links);
+    Home.graph(({ nodes: data.nodes, links: data.links }));
+  },
+  queryItems: (e, item, links) => {
+
+    let checkItem = false;
+    links.forEach(element => {
+      if (element.source == item.data["o:title"]) {
+        checkItem = true;
+      }
     });
 
+    if (checkItem == false) {
+      
+      let queryItems = new Set();
+      Object.entries(item.data).forEach(([propertyKey, propertyValue]) => {
+        try {
+          Object.entries(propertyValue).forEach(([key, val]) => {
+            if (val.type == "resource" && val.value_resource_name == "items") {
+              queryItems.add(val.value_resource_id);
+            }
+          });
+        }
+        catch { }
+      });
+
+      let query = Array.from(queryItems).join('&id[]=');
+      let url = `${window.location.origin}/api/items?id[]=${query}`;
+
+      d3.json(url).then(function (datum) {
+        const nodesCluster = Array.from(new Set(datum.flatMap(l => [l["o:title"]])), id => ({ id }), datum)
+        const links = [];
+
+        nodesCluster.forEach((l) => {
+          datum.forEach((j) => {
+            if (l.id == j["o:title"]) {
+              l.source = { type: "item", data: j };
+              links.push({ source: item.data["o:title"], target: l.id, to: j, from: item.data })
+            }
+          })
+        })
+        let updateData = ({ nodes: nodesCluster, links: links });
+        Home.drawData(updateData)
+      });
+    }
   }
 };
 
@@ -198,19 +267,13 @@ function linkArc(d) {
   `;
 }
 
-function mergeArrayObjects(arr1, arr2) {
-  let start = 0;
-  let merge = [];
-
-  while (start < arr1.length) {
-    merge.push({ ...arr1[start], ...arr2[start] })
-    start = start + 1
-  }
-  return merge;
-}
-
 function mouseEnterEvent(e, d) {
   if (!dragging) {
+    d3.selectAll(`path[data-from="${d.id}"]`)
+      .raise();
+    d3.selectAll(`path[data-to="${d.id}"]`)
+      .raise();
+
     if (this.parentNode.tagName == "g") {
       d3.select(this.parentNode)
         .raise()
@@ -230,8 +293,8 @@ function mouseEnterEvent(e, d) {
 
     const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
     const paths_to = d3.selectAll(`path[data-to="${d.source.data["o:title"]}"]`)
-    paths_from.attr("stroke", "rgb(212, 212, 212)");
-    paths_to.attr("stroke", "rgb(212, 212, 212)");
+    paths_from.attr("stroke", "black");
+    paths_to.attr("stroke", "black");
 
   }
 }
@@ -261,8 +324,14 @@ function mouseLeaveEvent(e, d) {
   }
 }
 
-function validate(x, a, b) {
-  if (x < a) x = a;
-  if (x > b) x = b;
-  return x;
+function mergeArrays(arrays, prop) {
+  const merged = {};
+
+  arrays.forEach(arr => {
+    arr.forEach(item => {
+      merged[item[prop]] = Object.assign({}, merged[item[prop]], item);
+    });
+  });
+
+  return Object.values(merged);
 }
