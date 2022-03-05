@@ -2,7 +2,7 @@
 
 This module allows the user to visualise in a graph the items contained in item sets.
 
-![alt text](https://user-images.githubusercontent.com/20107875/156810697-de62ccbf-637f-4176-a161-0748e2c64ce4.png)
+![img](https://user-images.githubusercontent.com/20107875/156875576-2c55ae6d-c38e-42b3-8640-50732333393a.png)
 
 ## Installation
 
