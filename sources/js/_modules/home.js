@@ -122,8 +122,9 @@ const Home = {
 
     const textObject = node.append("foreignObject")
       .attr("class", (d) => `labels-${d.source.type}`)
-      .attr("height", "30px")
-      .attr("width", 200)
+      .attr("height", "25px")
+      .attr("width", 50)
+      .attr("overflow", "inherit")
       .attr("data-from", d => d.id)
       .attr("x", d => {
         if (d.source.type == "item-set") {
@@ -145,8 +146,9 @@ const Home = {
     textObject
       .append("xhtml:div")
       .style("border-radius", ".25rem")
-      .style("padding", ".25rem")
-      .style("background", (d) => d.source.color ? d.source.color : "gainsboro")
+      .style("padding", "3px")
+      .style("background", (d) => d.source.color ? d.source.color : "white")
+      .style("border", (d) => d.source.color ? "none" : "1px solid black")
       .style("width", "fit-content")
       .append("xhtml:div")
       .html(d => d.id)
@@ -157,6 +159,7 @@ const Home = {
       node.append("circle")
         .filter((d) => d.source.type != "item-set" && !d.source.data["thumbnail_display_urls"]["square"])
         .attr("r", radius / 4)
+        .style("fill", "gainsboro")
         .on("mouseover", mouseEnterEvent)
         .on("mouseout", mouseLeaveEvent)
     }
@@ -165,6 +168,7 @@ const Home = {
       node.append("circle")
         .filter((d) => d.source.type != "item-set")
         .attr("r", radius / 4)
+        .style("fill", "gainsboro")
         .on("mouseover", mouseEnterEvent)
         .on("mouseout", mouseLeaveEvent)
     }
@@ -195,7 +199,7 @@ const Home = {
     });
 
     if (checkItem == false) {
-      
+
       let queryItems = new Set();
       Object.entries(item.data).forEach(([propertyKey, propertyValue]) => {
         try {
@@ -269,10 +273,27 @@ function linkArc(d) {
 
 function mouseEnterEvent(e, d) {
   if (!dragging) {
+
+    let getPaths = [];
     d3.selectAll(`path[data-from="${d.id}"]`)
-      .raise();
+      .raise()
+      .attr("x", function () {
+        getPaths.push(d3.select(this).attr("data-to"));
+      })
+
     d3.selectAll(`path[data-to="${d.id}"]`)
-      .raise();
+      .raise()
+      .attr("x", function () {
+        getPaths.push(d3.select(this).attr("data-from"));
+      })
+
+
+    getPaths.forEach(element => {
+      d3.select(`*[data-from="${element}"] ~ circle`)
+        .style("fill", "black")
+        .raise()
+    });
+
 
     if (this.parentNode.tagName == "g") {
       d3.select(this.parentNode)
@@ -313,8 +334,9 @@ function mouseLeaveEvent(e, d) {
         .selectAll(".labels-item")
         .style("display", "none");
     }
-    d3.select(this.parentNode)
-      .selectAll("circle")
+
+    d3.selectAll("circle")
+      .style("fill", "gainsboro")
       .style("opacity", 1);
 
     const paths_from = d3.selectAll(`*[data-from="${d.source.data["o:title"]}"]`)
