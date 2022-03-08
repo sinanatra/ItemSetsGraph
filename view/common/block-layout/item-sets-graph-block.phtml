@@ -22,10 +22,33 @@
 					'color' => $color,
 					'source' => $itemSetTitle,
 					'target' => $item->title(),
+					'from' => $itemSet,
 					'to' => $item,
-					'from' => $itemSet
-				];
+				];		
+
+				if(boolval($openNodes)== true) {
+					$properties = $item->values();
+					
+					foreach ($properties as $v) {
+						foreach ($v["values"] as $v1) {
+							if ($v1->type() == "resource" && $v1->jsonSerialize()["value_resource_name"] == "items" ){
+								$innerResource = $v1->valueResource();
+
+								$data[] = [
+									'color' => "",
+									'source' => $item->title(),
+									'target' => $innerResource->title(),
+									'from' => $item,
+									'to' => $innerResource
+								];		
+				
+							}
+						}
+					}
+				}
 			}
+
+
 		}
 		catch (Exception $e) {
 			// echo 'Caught exception: ',  $e->getMessage(), "\n";

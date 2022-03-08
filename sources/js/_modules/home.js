@@ -1,7 +1,10 @@
 const d3 = require('d3');
 let dragging;
 const radius = 20;
-let svg, data, simulation, imgCheck;
+let svg, data, simulation, imgCheck, links, nodes;
+let linearScale = d3.scaleLinear()
+  .domain([0, 50])
+  .range([0, 300]);
 
 const Home = {
   init: () => {
@@ -17,14 +20,22 @@ const Home = {
           l.source = { type: "item", data: j.to, color: j.color };
         }
         if (l.id == j.source) {
-          l.source = { type: "item-set", data: j.from, color: j.color };
+          if (j.from["@type"][0] == "o:ItemSet") {
+            l.source = { type: "item-set", data: j.from, color: j.color };
+          }
+          if (j.from["@type"][0] == "o:Item") {
+            l.source = { type: "item", data: j.from, color: "" };
+          }
         }
       })
     })
     data = ({ nodes: nodesCluster, links: json });
+    Home.drawData(data)
+    console.log("Data Loaded:", data)
 
-
-    Home.graph(data);
+    // for (let index = 0; index < nodes.length; index++) {
+    //   Home.queryItems("", nodes[index].source, data.links)
+    // }
   },
   graph: (data) => {
     d3.select('.item-sets-graph > svg').remove()
@@ -35,40 +46,6 @@ const Home = {
     svg = d3.select('.item-sets-graph').append("svg")
       .attr("viewBox", [-width / 2, -height / 2, width, height])
       .style("font", "12px sans-serif");
-
-    console.log("Data Loaded:", data)
-
-    const links = data.links.map(d => Object.create(d));
-    const nodes = data.nodes.map(d => Object.create(d));
-
-    let linearScale = d3.scaleLinear()
-      .domain([0, 50])
-      .range([0, 300]);
-
-    simulation = d3.forceSimulation(nodes)
-      // .force("link", d3.forceLink(links).id(d => d.id))
-      // .force("charge", d3.forceManyBody().strength(-100))
-      // .force("forceX", d3.forceX().x(0))
-      // .force("forceY", d3.forceY().y(0))
-      .force("link", d3.forceLink(links).id(d => d.id))
-      .force("charge", d3.forceManyBody().strength(-100))
-      .force("x", d3.forceX())
-      .force("y", d3.forceY())
-      .force(
-        "collision",
-        d3
-          .forceCollide()
-          .radius((d) => {
-            if (d.source.type == "item-set") {
-              // use a proper scale
-              return linearScale(d.source.data["o:title"].length)
-            }
-            else {
-              return radius + 5
-            }
-          })
-          .iterations(20)
-      );
 
     const g_links = svg.append("g")
       .attr("class", "links");
@@ -85,6 +62,7 @@ const Home = {
       .attr("data-from", d => d.from["o:title"])
       .attr("data-to", d => d.to["o:title"])
       .attr("stroke", "rgb(245, 245, 245)")
+      .attr("stroke-dasharray", (d) => d.color ? "" : "5 5")
 
     const node = g_nodes
       .attr("fill", "currentColor")
@@ -122,8 +100,8 @@ const Home = {
 
     const textObject = node.append("foreignObject")
       .attr("class", (d) => `labels-${d.source.type}`)
-      .attr("height", "25px")
-      .attr("width", 50)
+      .attr("height", 1)
+      .attr("width", 1)
       .attr("overflow", "inherit")
       .attr("data-from", d => d.id)
       .attr("x", d => {
@@ -145,12 +123,12 @@ const Home = {
 
     textObject
       .append("xhtml:div")
-      .style("border-radius", ".25rem")
+      .style("border-radius", "5px")
       .style("padding", "3px")
       .style("background", (d) => d.source.color ? d.source.color : "white")
       .style("border", (d) => d.source.color ? "none" : "1px solid black")
       .style("width", "fit-content")
-      .append("xhtml:div")
+      .append("xhtml:p")
       .html(d => d.id)
       .on("click", (e, d) => Home.queryItems(e, d.source, data.links))
 
@@ -187,6 +165,31 @@ const Home = {
   drawData: (graph) => {
     data.nodes = mergeArrays([graph.nodes, data.nodes], 'id');
     data.links = data.links.concat(graph.links);
+
+    links = data.links.map(d => Object.create(d));
+    nodes = data.nodes.map(d => Object.create(d));
+
+    simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id))
+      .force("charge", d3.forceManyBody().strength(-100))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
+      .force(
+        "collision",
+        d3
+          .forceCollide()
+          .radius((d) => {
+            if (d.source.type == "item-set") {
+              // use a proper scale
+              return linearScale(d.source.data["o:title"].length)
+            }
+            else {
+              return radius + 5
+            }
+          })
+          .iterations(20)
+      );
+
     Home.graph(({ nodes: data.nodes, links: data.links }));
   },
   queryItems: (e, item, links) => {
