@@ -1,81 +1,82 @@
-<?php
+<?php declare(strict_types=1);
+
 namespace ItemSetsGraph\Site\BlockLayout;
 
-use Laminas\Form\Element\Select;
-use Laminas\Form\Element\Text;
-use Laminas\Form\Element\Checkbox;
-use Omeka\Form\Element\HtmlTextarea;
-use Omeka\Api\Representation\SiteRepresentation;
-use Omeka\Api\Representation\SitePageRepresentation;
+use Laminas\View\Renderer\PhpRenderer;
 use Omeka\Api\Representation\SitePageBlockRepresentation;
-use Omeka\Api\Representation\ItemSetRepresentation;
-use Omeka\Api\Representation\ItemRepresentation;
-use Omeka\Mvc\Controller\Plugin\Api;
+use Omeka\Api\Representation\SitePageRepresentation;
+use Omeka\Api\Representation\SiteRepresentation;
 use Omeka\Entity\SitePageBlock;
 use Omeka\Site\BlockLayout\AbstractBlockLayout;
 use Omeka\Stdlib\ErrorStore;
-use Zend\View\Renderer\PhpRenderer;
-use Zend\ServiceManager\ServiceLocatorInterface;
 
 class ItemSetsGraph extends AbstractBlockLayout
 {
-    
+    /**
+     * The default partial view script.
+     */
+    const PARTIAL_NAME = 'common/block-layout/item-sets-graph';
+
     public function getLabel()
     {
         return 'Item Sets Graph'; // @translate
     }
 
-    public function prepareForm(PhpRenderer $view)
+    public function onHydrate(SitePageBlock $block, ErrorStore $errorStore): void
     {
-        $view->headLink()->appendStylesheet($view->assetUrl('css/item-sets-graph-admin.css', 'ItemSetsGraph'));
+        // TODO ArrayTextarea is not yet filtered here.
+        $data = $block->getData();
+        if (empty($data['json'])) {
+            $data['json'] = [];
+        } elseif (!is_array($data['json'])) {
+            $result = [];
+            foreach (array_filter(array_map('trim', explode("\n", trim($data['json'])))) as $keyValue) {
+                if (strpos($keyValue, '=') === false) {
+                    $result[trim($keyValue)] = '';
+                } else {
+                    [$key, $value] = array_map('trim', explode('=', $keyValue, 2));
+                    $result[$key] = $value;
+                }
+            }
+            $data['json'] = $result;
+        }
+        $block->setData($data);
     }
-    
-    public function form(PhpRenderer $view, SiteRepresentation $site,
-        SitePageRepresentation $page = null, SitePageBlockRepresentation $block = null) {
-        $html = '';
-        $json = new HtmlTextarea("o:block[__blockIndex__][o:data][item_sets_graph_json]");
-        $json->setAttributes(['rows' => 5]);
 
-        $imgCheck = new Checkbox("o:block[__blockIndex__][o:data][item_sets_graph_imgCheck]");
-        $openNodes = new Checkbox("o:block[__blockIndex__][o:data][item_sets_graph_openNodes]");
+    public function form(
+        PhpRenderer $view,
+        SiteRepresentation $site,
+        SitePageRepresentation $page = null,
+        SitePageBlockRepresentation $block = null
+    ) {
+        // Factory is not used to make rendering simpler.
+        $services = $site->getServiceLocator();
+        $formElementManager = $services->get('FormElementManager');
+        $defaultSettings = $services->get('Config')['itemsetsgraph']['block_settings']['itemSetsGraph'];
+        $blockFieldset = \ItemSetsGraph\Form\ItemSetsGraphFieldset::class;
 
-        if ($block && $block->dataValue('item_sets_graph_json')) {
-            $json->setAttribute('value', $block->dataValue('item_sets_graph_json'));
+        $data = $block ? $block->data() + $defaultSettings : $defaultSettings;
+
+        $dataForm = [];
+        foreach ($data as $key => $value) {
+            $dataForm['o:block[__blockIndex__][o:data][' . $key . ']'] = $value;
         }
 
-        if ($block && $block->dataValue('item_sets_graph_imgCheck')) {
-            $imgCheck->setAttribute('value', $block->dataValue('item_sets_graph_imgCheck'));
-        }
+        $fieldset = $formElementManager->get($blockFieldset);
+        $fieldset->populateValues($dataForm);
 
-        if ($block && $block->dataValue('item_sets_graph_openNodes')) {
-            $openNodes->setAttribute('value', $block->dataValue('item_sets_graph_openNodes'));
-        }
+        return $view->formCollection($fieldset, false);
+    }
 
-        $html .= '<div class="field"><div class="field-meta">';
-        $html .= '<label>' . $view->translate('Item Sets') . '</label>';
-        $html .= '<a href="#" class="collapse" aria-label="Collapse" title="Collapse"></a>';
-        $html .= '<div class="collapsible"><div class="field-description">'. $view->translate('Follow the structure: <br>Item Set Id, Hex color \n') . '</div></div>';
-        $html .= '</div>';
-        $html .= '<div class="inputs">' . $view->formRow($json);
-        $html .= '<div class="inputs">' .$view->formRow($imgCheck) . '<label> Display Images as nodes</label></div>';
-        $html .= '<div class="inputs">' .$view->formRow($openNodes) . '<label> Load all nodes (Slows down performance)</label></div>';
-        $html .= '</div>';
-        $html .= '</div>';
-
-        return $html;
+    public function prepareRender(PhpRenderer $view): void
+    {
+        $view->headLink()->appendStylesheet($view->assetUrl('css/style.css', 'ItemSetsGraph'));
+        $view->headScript()->appendFile($view->assetUrl('js/style.js', 'ItemSetsGraph'), 'text/javascript');
     }
 
     public function render(PhpRenderer $view, SitePageBlockRepresentation $block)
     {
-        $view->headLink()->appendStylesheet($view->assetUrl('style.css', 'ItemSetsGraph'));
-        $view->headScript()->appendFile($view->assetUrl('style.js', 'ItemSetsGraph'), 'text/javascript');
-        
-        return $view->partial('common/block-layout/item-sets-graph-block', [
-            'block' => $block,
-            'json' => $block->dataValue('item_sets_graph_json'),
-            'imgCheck' => $block->dataValue('item_sets_graph_imgCheck'),
-            'openNodes' => $block->dataValue('item_sets_graph_openNodes'),
-            'itemSets' => $response
-        ]);
+        $vars = ['block' => $block] + $block->data();
+        return $view->partial(self::PARTIAL_NAME, $vars);
     }
 }
