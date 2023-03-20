@@ -1,0 +1,62 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Omeka\Api\Representation\SiteRepresentation $site
+ * @var \ItemSetsGraph\Site\BlockLayout\ItemSetsGraph
+ * @var string $heading
+ * @var array $json
+ * @var bool $imgCheck
+ * @var bool $openNodes
+ */
+
+$plugins = $this->getHelperPluginManager();
+$api = $plugins->get('api');
+$escape = $plugins->get('escapeHtml');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
+
+$data = [];
+foreach ($json as $itemSetId => $hexColor) {
+    try {
+        $itemSet = $api->read('item_sets', $itemSetId)->getContent();
+        $itemSetTitle = $itemSet->displayTitle();
+        $response = $api->search('items', ['item_set_id' => $itemSetId]);
+        foreach ($response->getContent() as $item) {
+            $itemTitle = $item->displayTitle();
+            $data[] = [
+                'color' => $hexColor,
+                'source' => $itemSetTitle,
+                'target' => $itemTitle,
+                'from' => $itemSet,
+                'to' => $item,
+            ];
+            if ($openNodes) {
+                foreach ($item->values() as $propertyData) {
+                    /** @var \Omeka\Api\Representation\ValueRepresentation $v1 */
+                    foreach ($propertyData['values'] as $v1) {
+                        $innerResource = $v1->valueResource();
+                        if ($innerResource && $innerResource->resourceName() === 'items') {
+                            $data[] = [
+                                'color' => '',
+                                'source' => $itemTitle,
+                                'target' => $innerResource->displayTitle(),
+                                'from' => $item,
+                                'to' => $innerResource,
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch (\Exception $e) {
+        // echo 'Caught exception: ',  $e->getMessage(), "\n";
+    }
+}
+?>
+
+<div class="item-sets-graph-block" data-json="<?= $escapeAttr(json_encode($data)) ?>">
+    <?php if (!empty($heading)): ?>
+    <h2><?= $escape($heading) ?></h2>
+    <?php endif; ?>
+    <div id="item-sets-graph" data-img="<?= $imgCheck ? 'true' : 'false' ?>" class="item-sets-graph"></div>
+</div>

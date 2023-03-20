@@ -8,7 +8,7 @@ const build = async () => {
         entryPoints: ['sources/js/index.js'],
         bundle: true,
         minify: true,
-        outfile: 'asset/style.js',
+        outfile: 'asset/js/style.js',
         watch: process.argv.includes('--watch'),
         plugins: [sassPlugin()],
     }).catch((e) => console.error(e.message))
